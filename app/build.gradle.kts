@@ -63,3 +63,14 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+        buildPython("C:\\Users\\luisg\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
+        pip {
+            install("Pillow")
+            install("numpy")
+        }
+    }
+}
