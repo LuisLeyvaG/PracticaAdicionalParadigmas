@@ -43,10 +43,10 @@ class ImageEditorViewModel : ViewModel() {
 
     // NUEVA FUNCIÓN: La lógica para deshacer el último cambio.
     fun undo() {
-        val currentHistory = _imageHistory.value
-        if (currentHistory != null && currentHistory.size > 1) {
+        val currentHistory = LinkedList(_imageHistory.value)
+        if (currentHistory.size > 1) {
             currentHistory.removeLast() // Quita el último filtro aplicado
-            _imageHistory.value = currentHistory!! // Notifica a los observadores del cambio
+            _imageHistory.value = currentHistory // Notifica a los observadores del cambio
         }
     }
 

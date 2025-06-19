@@ -1,12 +1,26 @@
 # main.py
 
 from imagenes import Imagen # Importamos la nueva clase Imagen
-from filtros import FiltroGrises, FiltroInversion
+from filtros import FiltroGrises, FiltroInversion, FiltroSepia, FiltroPosterizar, \
+    FiltroSolarizar, FiltroContraste, FiltroDesenfoque, FiltroEnfocar, \
+    FiltroDetectarBordes, FiltroContorno, FiltroRelieve, FiltroEspejo, \
+    FiltroRotar90
 
-# El diccionario de filtros no cambia
+# El diccionario de filtros
 FILTROS_DISPONIBLES = {
-    "grises": FiltroGrises(),
-    "inversion": FiltroInversion()
+    "grayscale": FiltroGrises(),
+    "invert": FiltroInversion(),
+    "sepia": FiltroSepia(),
+    "posterize": FiltroPosterizar(),
+    "solarize": FiltroSolarizar(),
+    "autocontrast": FiltroContraste(),
+    "blur": FiltroDesenfoque(),
+    "sharpen": FiltroEnfocar(),
+    "find_edges": FiltroDetectarBordes(),
+    "contour": FiltroContorno(),
+    "emboss": FiltroRelieve(),
+    "mirror": FiltroEspejo(),
+    "rotate90": FiltroRotar90()
 }
 
 def aplicar_filtro_a_imagen(ruta_entrada: str, ruta_salida: str, nombre_filtro: str):

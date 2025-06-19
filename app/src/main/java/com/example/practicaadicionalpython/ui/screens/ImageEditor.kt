@@ -19,11 +19,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -40,20 +43,32 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.practicaadicionalpython.domain.Filtro
 import com.example.practicaadicionalpython.domain.Imagen
+import com.example.practicaadicionalpython.R
+import okhttp3.internal.wait
 
 @Composable
 fun ImageEditorScreen() {
 
     val viewModel: ImageEditorViewModel = viewModel()
+    val context = LocalContext.current
 
     val imageHistory by viewModel.imageHistory.observeAsState()
     val image = imageHistory?.peekLast()
     val imageUri = image?.uri // Obtenemos la última imagen del historial
+    val availableFilters = viewModel.availableFilters
+
+    val canUndo = (imageHistory?.size ?: 0) > 1 // Solo se puede deshacer si hay más de una imagen en el historial
+
+    // --- ESTADO PARA CONTROLAR EL DIÁLOGO ---
+    val showFilterDialog = remember { mutableStateOf(false) }
 
     /*// --- LOGS DE DEPURACIÓN ---
     // Este bloque se ejecutará en cada recomposición
@@ -76,6 +91,21 @@ fun ImageEditorScreen() {
             // la procese y actualice el estado.
             viewModel.onImageSelected(it)
         }
+    }
+
+    // --- DIÁLOGO DE FILTROS (se mostrará cuando showFilterDialog sea true) ---
+    if (showFilterDialog.value) {
+        FilterSelectionDialog(
+            onDismissRequest = { showFilterDialog.value = false },
+            filters = availableFilters,
+            onFilterSelected = { selectedFilter ->
+                // Cuando un filtro es seleccionado:
+                // Aquí llamarías a una función en tu ViewModel que use Chaquopy.
+                viewModel.onSomeFilterButtonClicked(context, selectedFilter) // Ejemplo de filtro
+                // 2. Cerramos el diálogo
+                showFilterDialog.value = false
+            }
+        )
     }
 
     // --- UI Layout ---
@@ -149,24 +179,42 @@ fun ImageEditorScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        val context = LocalContext.current
-
         // --- Botón para Procesar con Chaquopy (Ejemplo) ---
         // Este botón estaría deshabilitado si no hay imagen.
         // Su lógica estaría en el ViewModel.
-        Button(
-            onClick = {
-                // Aquí llamarías a una función en tu ViewModel que use Chaquopy.
-                viewModel.onSomeFilterButtonClicked(context, viewModel.availableFilters[1]) // Ejemplo de filtro
-            },
-            enabled = imageUri != null, // Solo se habilita si hay una imagen
+
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                disabledContainerColor = Color.Gray
-            )
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Procesar con Chaquopy")
+            // <<< 3. Añadimos el IconButton para "Deshacer"
+            IconButton(
+                onClick = { viewModel.undo() },
+                enabled = canUndo // El botón solo se activa si canUndo es true
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_undo), // Asegúrate de tener un icono de deshacer
+                    contentDescription = "Deshacer"
+                )
+            }
+
+            // <<< 4. El botón "Aplicar Filtro" ahora ocupa el espacio restante
+            Button(
+                onClick = {
+                    // La única acción de este botón ahora es mostrar el diálogo
+                    showFilterDialog.value = true
+                },
+                enabled = imageUri != null, // Solo se habilita si hay una imagen
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    disabledContainerColor = Color.Gray
+                )
+            ) {
+                Text(text = "Aplicar Filtro")
+            }
         }
+
     }
 }
 
@@ -222,5 +270,61 @@ private fun InfoRow(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+/**
+ * Un diálogo que muestra una cuadrícula de filtros seleccionables.
+ *
+ * @param onDismissRequest Se llama cuando el usuario pide cerrar el diálogo (ej. tocando fuera).
+ * @param filters La lista de objetos Filter a mostrar.
+ * @param onFilterSelected Un callback que se ejecuta cuando el usuario selecciona un filtro.
+ */
+@Composable
+fun FilterSelectionDialog(
+    onDismissRequest: () -> Unit,
+    filters: List<Filtro>,
+    onFilterSelected: (Filtro) -> Unit
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Seleccionar Filtro",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Usamos LazyVerticalGrid para una cuadrícula eficiente y adaptable.
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 100.dp), // Se adapta al ancho
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filters) {
+                        OutlinedButton(
+                            onClick = { onFilterSelected(it) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = it.displayName)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Botón para cerrar el diálogo
+                Button(
+                    onClick = onDismissRequest,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        }
     }
 }
