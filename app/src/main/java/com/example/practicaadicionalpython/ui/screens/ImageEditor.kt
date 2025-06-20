@@ -3,6 +3,7 @@ package com.example.practicaadicionalpython.ui.screens
 import ImageEditorViewModel
 import android.net.Uri
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -60,15 +61,24 @@ fun ImageEditorScreen() {
     val viewModel: ImageEditorViewModel = viewModel()
     val context = LocalContext.current
 
+    val uiState by viewModel.uiState.observeAsState()
     val imageHistory by viewModel.imageHistory.observeAsState()
+
     val image = imageHistory?.peekLast()
     val imageUri = image?.uri // Obtenemos la última imagen del historial
     val availableFilters = viewModel.availableFilters
-
     val canUndo = (imageHistory?.size ?: 0) > 1 // Solo se puede deshacer si hay más de una imagen en el historial
 
     // --- ESTADO PARA CONTROLAR EL DIÁLOGO ---
     val showFilterDialog = remember { mutableStateOf(false) }
+
+    // Efecto para mostrar mensajes al usuario (éxito al guardar, errores, etc.)
+    LaunchedEffect(uiState!!.userMessage) {
+        uiState!!.userMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.userMessageShown() // Resetea el mensaje
+        }
+    }
 
     /*// --- LOGS DE DEPURACIÓN ---
     // Este bloque se ejecutará en cada recomposición
@@ -212,6 +222,18 @@ fun ImageEditorScreen() {
                 )
             ) {
                 Text(text = "Aplicar Filtro")
+            }
+
+            // --- NUEVO BOTÓN DE GUARDAR ---
+            Button(
+                onClick = { viewModel.saveCurrentImageToGallery(context) },
+                enabled = canUndo/* && !uiState!!.isLoading*/, // Se activa si hay imagen y no está cargando
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    disabledContainerColor = Color.Gray
+                )
+            ) {
+                Text(text = "Guardar")
             }
         }
 

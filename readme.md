@@ -15,7 +15,7 @@ El proyecto está estructurado en dos componentes principales:
 
 ### Diseño Orientado a Objetos
 
-El diseño del software sigue las directrices de la POO, tal como se especifica en los requisitos de la práctica[cite: 13, 14].
+El diseño del software sigue las directrices de la POO, tal como se especifica en los requisitos de la práctica.
 
 #### Capa de Python (Backend)
 
